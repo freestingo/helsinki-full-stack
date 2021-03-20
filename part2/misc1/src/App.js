@@ -1,29 +1,48 @@
 import React, {useState, useEffect} from 'react'
 import axios from 'axios'
 import Note from './components/Note'
+import noteService from './services/notes'
 
 const App = () => {
   const [notes, setNotes] = useState([])
   const [newNote, setNewNote] = useState('a new note...')
   const [showAll, setShowAll] = useState(true)
 
-  useEffect(
-    () => axios
-      .get('http://localhost:3001/notes')
-      .then(response => setNotes(response.data)),
+  useEffect(() =>
+    noteService
+      .getAll()
+      .then(initialNotes => setNotes(initialNotes)),
     [])
 
   const addNote = (event) => {
     event.preventDefault()
-    setNotes(notes.concat(
-      {
-        id: notes.length + 1,
-        content: newNote,
-        date: new Date().toISOString(),
-        important: Math.random() < 0.5,
-      }
-    ))
-    setNewNote('')
+    const noteObject = {
+      content: newNote,
+      date: new Date().toISOString(),
+      important: Math.random() < 0.5,
+    }
+
+    noteService
+      .create(noteObject)
+      .then(returnedNote => {
+        setNotes(notes.concat(returnedNote))
+        setNewNote('')
+      })
+    
+  }
+
+  const toggleImportanceOf = id => () => {
+    const note = notes.find(n => n.id === id)
+    const toggledNote = {...note, important: !note.important}
+    noteService
+      .update(id, toggledNote)
+      .then(returnedNote => setNotes(
+        notes.map(n => n.id !== id ? n : returnedNote)))
+      .catch(error => {
+        alert(`the note '${note.content}' was already deleted from server`)
+        setNotes(notes.filter(n => n.id !== id))
+      })
+
   }
 
   const handleNoteChange = (event) => {
@@ -40,7 +59,7 @@ const App = () => {
       <h1>Notes</h1>
       <ul>
         {notesToShow.map(note =>
-          <Note key={note.id} content={note.content} />  
+          <Note key={note.id} note={note} toggleImportance={toggleImportanceOf(note.id)} />  
         )}
       </ul>
       <form onSubmit={addNote}>
