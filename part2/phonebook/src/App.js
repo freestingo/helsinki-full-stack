@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
 import Numbers from './components/Numbers'
 import Input from './components/Input'
 import Button from './components/Button'
+import personService from './services/persons'
 
 const App = () => {
   const [people, setPeople] = useState([]) 
@@ -10,10 +10,10 @@ const App = () => {
   const [newNumber, setNewNumber] = useState('')
   const [toBeSearched, setToBeSearched] = useState('')
 
-  useEffect(
-    () => axios
-      .get('http://localhost:3001/persons')
-      .then(response => setPeople(response.data)),
+  useEffect(() =>
+    personService
+      .getAll()
+      .then(initialPeople => setPeople(initialPeople)),
     []
   )
   
@@ -22,22 +22,44 @@ const App = () => {
   
   const handleSubmit = (event) => {
     event.preventDefault()
-    people.map(p => p.name).includes(newName)
-      ? alert(`${newName} has already been added to the phonebook!`)
+    const match = people.find(p => p.name === newName)
+    console.log('match: ', match)
+    match
+      ? updatePerson(match)
       : addPerson()
   }
+
+  const updatePerson = (match) => {
+    if (window.confirm(
+      `${match.name} has already been added to this phonebook. Do you wish to update their number?`
+    )) {
+      const updatedPerson = {...match, number: newNumber}
+      personService
+        .update(match.id, updatedPerson)
+        .then(returnedPerson => {
+          setPeople(people.map(p => p.id !== match.id ? p : returnedPerson))
+          setNewName('')
+          setNewNumber('')
+        })
+    }
+  }
+
+  const handleDelete = (name, id) => () => {
+    if (window.confirm(`Delete ${name}?`)) {
+      personService.remove(id)
+      setPeople(people.filter(person => person.id !== id))
+    }  
+  }  
   
   const addPerson = () => {
-    setPeople(
-      people.concat(
-        {
-          name: newName,
-          number: newNumber,
-        }
-      )
-    )
-    setNewName('')
-    setNewNumber('')
+    const newPerson = {name: newName, number: newNumber}
+    personService
+      .create(newPerson)
+      .then(returnedPerson => {
+        setPeople(people.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
+      })
   }
 
   const toBeShown = people.filter(
@@ -66,7 +88,7 @@ const App = () => {
         />
         <Button type="submit" onClick={handleSubmit} text="add" />
       </form>
-      <Numbers people={toBeShown} />
+      <Numbers people={toBeShown} handleDelete={handleDelete} />
     </div>
   )
 }
