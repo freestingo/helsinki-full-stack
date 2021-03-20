@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import Numbers from './components/Numbers'
 import Input from './components/Input'
 import Button from './components/Button'
+import Notification from './components/Notification'
+import Error from './components/Error'
 import personService from './services/persons'
 
 const App = () => {
@@ -9,6 +11,15 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [toBeSearched, setToBeSearched] = useState('')
+  const [notification, setNotification] = useState('')
+  const [errMsg, setErrMsg] = useState('')
+
+  const notificationTimer = 3000 /* ms */
+
+  const notify = (setter, msg, timer) => {
+    setter(msg)
+    setTimeout(() => setter(''), timer)
+  }
 
   useEffect(() =>
     personService
@@ -23,7 +34,6 @@ const App = () => {
   const handleSubmit = (event) => {
     event.preventDefault()
     const match = people.find(p => p.name === newName)
-    console.log('match: ', match)
     match
       ? updatePerson(match)
       : addPerson()
@@ -40,14 +50,36 @@ const App = () => {
           setPeople(people.map(p => p.id !== match.id ? p : returnedPerson))
           setNewName('')
           setNewNumber('')
+          notify(
+            setNotification,
+            `Updated ${returnedPerson.name}'s number!`,
+            notificationTimer
+          )
         })
     }
   }
 
   const handleDelete = (name, id) => () => {
     if (window.confirm(`Delete ${name}?`)) {
-      personService.remove(id)
-      setPeople(people.filter(person => person.id !== id))
+      personService
+        .remove(id)
+        .then(() => {
+          setPeople(people.filter(person => person.id !== id))
+          notify(
+            setNotification,
+            `Deleted ${name}!`,
+            notificationTimer
+          )
+        })
+        .catch(error => {
+          notify(
+            setErrMsg,
+            `${name} has already been deleted from the server`,
+            3000
+          )
+          setPeople(people.filter(person => person.id !== id))
+        })
+      
     }  
   }  
   
@@ -59,6 +91,11 @@ const App = () => {
         setPeople(people.concat(returnedPerson))
         setNewName('')
         setNewNumber('')
+        notify(
+          setNotification,
+          `Added ${returnedPerson.name}!`,
+          notificationTimer
+        )
       })
   }
 
@@ -69,6 +106,8 @@ const App = () => {
   return (
     <div>
       <h1>Phonebook</h1>
+      <Notification message={notification} />
+      <Error message={errMsg} />
         <Input
           text='search by name'
           value={toBeSearched}
