@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const baseUrl = 'https://murmuring-basin-38978.herokuapp.com/api/notes'
+const baseUrl = '/api/notes' /* baseUrl as a relative URL */
 
 const getAll = () =>
     axios.get(baseUrl).then(response => response.data)
