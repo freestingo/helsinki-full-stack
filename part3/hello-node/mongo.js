@@ -40,7 +40,7 @@ note.save().then(result => {
 })
 
 /*
-/* print all notes in the collection */
+// print all notes in the collection
 Note.find({})
     .then(result => {
         result.forEach(note => console.log(note))
