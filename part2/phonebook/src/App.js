@@ -56,6 +56,9 @@ const App = () => {
             notificationTimer
           )
         })
+        .catch(error =>
+          notify(setErrMsg, error.response.data.error, notificationTimer)
+        )
     }
   }
 
